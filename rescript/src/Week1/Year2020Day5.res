@@ -1,11 +1,13 @@
+open Belt
+
+let col = (0, 127)
+let row = (0, 7)
+
 let parseInput = () => {
   NodeJs.Fs.readFileSyncWith("input/Week1/Year2020Day5.sample.txt", {encoding: "utf8"})
   ->Js.String2.make
   ->Js.String2.split("\n")
 }
-
-let col = (0, 127)
-let row = (0, 7)
 
 let findSeat = (direction, (rowStart, rowEnd), (colStart, colEnd)) => {
   let rowMid = rowStart + (rowEnd - rowStart) / 2
@@ -20,29 +22,37 @@ let findSeat = (direction, (rowStart, rowEnd), (colStart, colEnd)) => {
   }
 }
 
-let findId = (row, col) => row * 8 + col
-
-let solution = (directions, initRowRange, initialColRange) => {
+let findRangesV2 = (directions, initRowRange, initColRange) => {
   let ranges =
     directions
     ->Js.String2.split("")
-    ->Belt.Array.reduce((initRowRange, initialColRange), (currentRanges, direction) => {
+    ->Array.reduce((initRowRange, initColRange), (currentRanges, direction) => {
       let (currentRowRange, currentColRange) = currentRanges
       findSeat(direction, currentRowRange, currentColRange)
     })
 
-  // let test = ranges[0]처럼 접근이 불가해서 destructuring을 사용했는데 더 깔끔하게?
-  // reduce의 return이 tuple 형태여서 pipe chaining을 사용못했는데 고쳐보기
   let (rowRange, colRange) = ranges
   let (row, _) = rowRange
   let (col, _) = colRange
-  findId(row, col)
+
+  (row, col)
 }
 
-let sortSeat = inputs => {
+let findId = (row, col) => row * 8 + col
+
+let findAllSeatIds = inputs => {
   inputs
-  ->Belt.Array.map(input => solution(input, col, row))
+  ->Belt.Array.map(input => findRangesV2(input, col, row))
+  ->Belt.Array.map(ranges => {
+    let (row, col) = ranges
+    findId(row, col)
+  })
+}
+
+let findHighestSeatId = seatIds => {
+  seatIds
   ->Belt.SortArray.stableSortBy((a, b) => a - b)
+  ->Belt.Array.getExn(Belt.Array.length(seatIds) - 1)
 }
 
 let findMissingSeat = sortedSeats => {
@@ -57,28 +67,29 @@ let findMissingSeat = sortedSeats => {
   rangeSum - totalSum
 }
 
-let part1 = inputs => {
-  sortSeat(inputs)->Belt.Array.getExn(Belt.Array.length(inputs) - 1)
+let findMissingId = seatIds => {
+  let sortedSeatIds = seatIds->Belt.SortArray.stableSortBy((a, b) => a - b)
+  let (startSeat, endSeat) = (
+    Belt.Array.getExn(sortedSeatIds, 0),
+    Belt.Array.getExn(sortedSeatIds, Belt.Array.length(sortedSeatIds) - 1),
+  )
+  let expectedSum = (endSeat + startSeat) * (endSeat - startSeat + 1) / 2
+  let actualSum = sortedSeatIds->Belt.Array.reduce(0, (sum, seatId) => sum + seatId)
+
+  expectedSum - actualSum
 }
 
-let part2 = inputs => {
-  let sortedSeat = sortSeat(inputs)
-
-  let startSeat = Belt.Array.getExn(sortedSeat, 0)
-  let endSeat = Belt.Array.getExn(sortedSeat, Belt.Array.length(sortedSeat) - 1)
-
-  let seatSum = (endSeat + startSeat) * (endSeat - startSeat + 1) / 2
-  let totalSum = sortedSeat->Belt.Array.reduce(0, (sum, seatId) => {
-    sum + seatId
-  })
-
-  seatSum - totalSum
+let part1V2 = () => {
+  parseInput()
+  ->findAllSeatIds
+  ->findHighestSeatId
 }
 
-parseInput()
-->part1
-->Js.log
+let part2V2 = () => {
+  parseInput()
+  ->findAllSeatIds
+  ->findMissingId
+}
 
-parseInput()
-->part2
-->Js.log
+part1V2()->Js.log
+part2V2()->Js.log
