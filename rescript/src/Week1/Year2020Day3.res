@@ -10,8 +10,10 @@ module Day3 = {
 }
 
 {
-  //Belt 주석 해제하면 inputs 타입 추론이 변경되어서 에러. 왜?
-  // open Belt
+  //기본 Array와 Belt를 Open했을 때 사용하는 Array 모듈이 달라서 생긴 문제.
+  // 기본 Array는 배열[] 접근 시, index가 범위를 벗어나면 index out of bounds 에러를 발생시키지만,
+  // Belt의 Array는 option을 반환하여 안전하게 접근할 수 있도록 한다.
+  open Belt
   open Day3
 
   inputs->Js.log
@@ -25,7 +27,12 @@ module Day3 = {
       switch isBounded {
       | true => count
       | false => {
-          let updatedCount = inputs[row][col] == "#" ? count + 1 : count
+          let updatedCount =
+            inputs
+            ->Array.getExn(row)
+            ->Array.getExn(col) == "#"
+              ? count + 1
+              : count
           countSlope(row + down, mod(col + right, width), updatedCount)
         }
       }
