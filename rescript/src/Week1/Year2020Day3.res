@@ -20,7 +20,7 @@ module Day3 = {
   let dir1 = (3, 1)
   let dir2 = [(1, 1), (3, 1), (5, 1), (7, 1), (1, 2)]
 
-  let countTrees = ((right, down)) => {
+  let countTrees = ((right, down), graph) => {
     let rec countSlope = (row, col, count) => {
       let isBounded = row >= height
 
@@ -28,7 +28,7 @@ module Day3 = {
       | true => count
       | false => {
           let updatedCount =
-            inputs
+            graph
             ->Array.getExn(row)
             ->Array.getExn(col) == "#"
               ? count + 1
@@ -40,16 +40,16 @@ module Day3 = {
     countSlope(0, 0, 0)
   }
 
-  let solution = direction => {
-    countTrees(direction)
+  let solution = (direction, graph) => {
+    countTrees(direction, graph)
   }
 
-  let solution2 = directions => {
+  let solution2 = (directions, graph) => {
     directions
-    ->Belt.Array.map(countTrees)
+    ->Belt.Array.map(x => countTrees(x, graph))
     ->Belt.Array.reduce(1, (acc, item) => acc * item)
   }
 
-  solution(dir1)->Js.log
-  solution2(dir2)->Js.log
+  solution(dir1, inputs)->Js.log
+  solution2(dir2, inputs)->Js.log
 }
