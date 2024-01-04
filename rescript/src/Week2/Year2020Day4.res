@@ -1,20 +1,29 @@
 open Belt
 
 type passport = {
-  byr: int,
-  iyr: int,
-  eyr: int,
+  byr: string,
+  iyr: string,
+  eyr: string,
   hgt: string,
   hcl: string,
   ecl: string,
   pid: string,
-  cid: option<string>,
+  cid?: string,
 }
 
-let convertSplit = input => {
-  input
-  ->Js.String2.split(" ")
-  ->Array.map(x => x->Js.String2.split(":"))
+type hair = Hex(string)
+type height = Cm(int) | In(int)
+type eye = Amb | Blu | Grn | Gry | Hzl | Oth | Brn
+
+type strictPassport = {
+  hgt: height,
+  hcl: hair,
+  ecl: eye,
+  pid: string,
+  byr: int,
+  iyr: int,
+  eyr: int,
+  cid?: string,
 }
 
 let input =
@@ -31,83 +40,156 @@ let matchedStrings = (str, re) => {
   ->Belt.Array.map(Js.Nullable.toOption)
 }
 
-let hasPassportKey = input =>
-  ["ecl", "pid", "eyr", "hcl", "byr", "iyr", "hgt"]->Array.every(k => input->Map.String.has(k))
+let naiveParser = (key, string) => {
+  let regex = Js.Re.fromString(key ++ ":([\\w#]+)")
 
-let convertValue = input =>
-  input->Array.reduce(Map.String.empty, (acc, s) => {
-    switch s {
-    | [key, value] => acc->Map.String.set(key, value)
-    | _ => acc
-    }
-  })
-
-let validateHeight = height => {
-  switch height {
-  | [Some(height), Some(heightUnit)] => {
-      let heightInt = height->Int.fromString->Option.getWithDefault(0)
-      if heightUnit == "cm" {
-        heightInt >= 150 && heightInt <= 193
-      } else if heightUnit == "in" {
-        heightInt >= 59 && heightInt <= 76
-      } else {
-        false
-      }
-    }
-  | _ => false
+  switch Js.Re.exec_(regex, string) {
+  | Some(result) => Js.Re.captures(result)[1]->Option.flatMap(Js.Nullable.toOption)
+  | None => None
   }
 }
 
-let validateEyeColor = eyeColor => %re("/^(amb|blu|brn|gry|grn|hzl|oth)$/")->Js.Re.test_(eyeColor)
-let validateHairColor = hairColor => %re("/^#[\da-f]{6}$/")->Js.Re.test_(hairColor)
-let validatePassportId = passportId => %re("/^\d{9}$/")->Js.Re.test_(passportId)
+let parse = input =>
+  switch (
+    "byr"->naiveParser(input),
+    "iyr"->naiveParser(input),
+    "eyr"->naiveParser(input),
+    "hgt"->naiveParser(input),
+    "hcl"->naiveParser(input),
+    "ecl"->naiveParser(input),
+    "pid"->naiveParser(input),
+    "cid"->naiveParser(input),
+  ) {
+  | (Some(byr), Some(iyr), Some(eyr), Some(hgt), Some(hcl), Some(ecl), Some(pid), cid) =>
+    let passport: passport = {
+      byr,
+      iyr,
+      eyr,
+      hgt,
+      hcl,
+      ecl,
+      pid,
+      ?cid,
+    }
+    passport->Some
+  | _ => None
+  }
+
+let parseEye = eye => {
+  switch eye {
+  | "amb" => Some(Amb)
+  | "blu" => Some(Blu)
+  | "brn" => Some(Brn)
+  | "gry" => Some(Gry)
+  | "grn" => Some(Grn)
+  | "hzl" => Some(Hzl)
+  | "oth" => Some(Oth)
+  | _ => None
+  }
+}
+
+let parsePassportId = id => {
+  let regex = %re("/^\d{9}$/")
+
+  switch Js.Re.exec_(regex, id) {
+  | Some(result) => Js.Re.captures(result)[0]->Option.flatMap(Js.Nullable.toOption)
+  | None => None
+  }
+}
 
 let isInRange = (value, min, max) => value >= min && value <= max
-let validateBirthYear = birthYear => isInRange(birthYear, 1920, 2002)
-let validateIssueYear = issueYear => isInRange(issueYear, 2010, 2020)
-let validateExpirationYear = expirationYear => isInRange(expirationYear, 2020, 2030)
 
-let validatePassport = passport => {
-  let parsedHeight = passport.hgt->matchedStrings(%re("/^(\d+)(cm|in)$/"))
-
-  validateBirthYear(passport.byr) &&
-  validateIssueYear(passport.iyr) &&
-  validateExpirationYear(passport.eyr) &&
-  validateEyeColor(passport.ecl) &&
-  validateHairColor(passport.hcl) &&
-  validatePassportId(passport.pid) &&
-  validateHeight(parsedHeight)
-}
-
-let parsePassport = input => {
-  let passport = {
-    byr: input->Map.String.getExn("byr")->Int.fromString->Belt.Option.getWithDefault(0),
-    iyr: input->Map.String.getExn("iyr")->Int.fromString->Belt.Option.getWithDefault(0),
-    eyr: input->Map.String.getExn("eyr")->Int.fromString->Belt.Option.getWithDefault(0),
-    hgt: input->Map.String.getExn("hgt"),
-    hcl: input->Map.String.getExn("hcl"),
-    ecl: input->Map.String.getExn("ecl"),
-    pid: input->Map.String.getExn("pid"),
-    cid: input->Map.String.get("cid"),
+let parseHeight = height =>
+  switch height->matchedStrings(%re("/^(\d+)(cm|in)$/")) {
+  | [Some(height), Some(unit)] =>
+    switch Int.fromString(height) {
+    | Some(heightInt) if unit == "cm" && isInRange(heightInt, 150, 193) => Some(Cm(heightInt))
+    | Some(heightInt) if unit == "in" && isInRange(heightInt, 59, 76) => Some(In(heightInt))
+    | _ => None
+    }
+  | _ => None
   }
 
-  switch validatePassport(passport) {
-  | true => Some(passport)
-  | false => None
+let parseBirthDateYear = birthYear =>
+  switch birthYear {
+  | Some(birthYear) =>
+    switch isInRange(birthYear, 1920, 2002) {
+    | true => Some(birthYear)
+    | false => None
+    }
+  | _ => None
+  }
+
+let parseIssueYear = issueYear =>
+  switch issueYear {
+  | Some(issueYear) =>
+    switch isInRange(issueYear, 2010, 2020) {
+    | true => Some(issueYear)
+    | false => None
+    }
+  | _ => None
+  }
+
+let parseExpirationYear = expirationYear =>
+  switch expirationYear {
+  | Some(expirationYear) =>
+    switch isInRange(expirationYear, 2020, 2030) {
+    | true => Some(expirationYear)
+    | false => None
+    }
+  | _ => None
+  }
+
+let parseHairColor = hair => {
+  let regex = Js.Re.fromString("#([\\da-f]{6})")
+
+  switch Js.Re.exec_(regex, hair) {
+  | Some(result) => {
+      let hair = Js.Re.captures(result)[1]->Option.flatMap(Js.Nullable.toOption)
+      switch hair {
+      | Some(hair) => Hex(hair)->Some
+      | None => None
+      }
+    }
+  | None => None
+  }
+}
+
+let strictParse = (passport: passport) => {
+  let {byr, iyr, eyr, hgt, hcl, ecl, pid, ?cid} = passport
+
+  switch (
+    hcl->parseHairColor,
+    pid->parsePassportId,
+    ecl->parseEye,
+    hgt->parseHeight,
+    byr->Int.fromString->parseBirthDateYear,
+    iyr->Int.fromString->parseIssueYear,
+    eyr->Int.fromString->parseExpirationYear,
+    cid,
+  ) {
+  | (Some(hcl), Some(pid), Some(ecl), Some(hgt), Some(byr), Some(iyr), Some(eyr), cid) =>
+    {
+      hcl,
+      pid,
+      ecl,
+      hgt,
+      byr,
+      iyr,
+      eyr,
+      ?cid,
+    }->Some
+  | _ => None
   }
 }
 
 input
-->Array.map(convertSplit)
-->Array.map(convertValue)
-->Array.keep(hasPassportKey)
+->Array.keepMap(parse)
 ->Array.length
 ->Js.log
 
 input
-->Array.map(convertSplit)
-->Array.map(convertValue)
-->Array.keep(hasPassportKey)
-->Array.keepMap(parsePassport)
+->Array.keepMap(parse)
+->Array.keepMap(strictParse)
 ->Array.length
 ->Js.log
