@@ -1,1 +1,1 @@
-let countTrees: (array<array<string>>, (int, int)) => int
+let countTrees: (Slope.t, (int, int)) => int

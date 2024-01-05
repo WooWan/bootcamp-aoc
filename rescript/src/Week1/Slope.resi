@@ -1,7 +1,9 @@
-type slope
+type t
 
-let height: int
-let width: int
+let height: t => int
+let width: t => int
 
 let inputs: array<string>
-let make: array<string> => array<array<string>>
+let make: array<string> => t
+
+let getSlopeByCoords: (t, int, int) => option<string>
