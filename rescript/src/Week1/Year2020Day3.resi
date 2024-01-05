@@ -1,3 +1,7 @@
-let solution: array<string> => int
+type input
 
-let solution2: array<string> => int
+let solution: input => int
+
+let solution2: input => int
+
+let inputs: input

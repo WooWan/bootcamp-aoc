@@ -1,5 +1,5 @@
 let countTrees = (graph, (right, down)) => {
-  let rec countSlope = (row, col, count) => {
+  let rec countWhileTraverse = (row, col, count) => {
     let height = graph->Slope.height
     let width = graph->Slope.width
     let isBounded = row >= height
@@ -13,9 +13,9 @@ let countTrees = (graph, (right, down)) => {
         | None => count
         }
 
-        countSlope(row + down, mod(col + right, width), updatedCount)
+        countWhileTraverse(row + down, mod(col + right, width), updatedCount)
       }
     }
   }
-  countSlope(0, 0, 0)
+  countWhileTraverse(0, 0, 0)
 }
