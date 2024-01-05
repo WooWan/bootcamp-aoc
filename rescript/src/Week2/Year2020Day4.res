@@ -99,7 +99,8 @@ let parsePassportId = id => {
 
 let isInRange = (value, min, max) => value >= min && value <= max
 
-let parseHeight = height =>
+// switch 2중
+let parseHeightV1 = height =>
   switch height->matchedStrings(%re("/^(\d+)(cm|in)$/")) {
   | [Some(height), Some(unit)] =>
     switch Int.fromString(height) {
@@ -107,6 +108,16 @@ let parseHeight = height =>
     | Some(heightInt) if unit == "in" && isInRange(heightInt, 59, 76) => Some(In(heightInt))
     | _ => None
     }
+  | _ => None
+  }
+
+// switch 한 개 풀이
+let parseHeightV2 = height =>
+  switch height->matchedStrings(%re("/^(\d+)(cm|in)$/")) {
+  | [Some(height), Some("cm")] =>
+    height->Int.fromString->Option.keep(v => v->isInRange(150, 193))->Option.map(v => Cm(v))
+  | [Some(height), Some("in")] =>
+    height->Int.fromString->Option.keep(v => isInRange(v, 59, 76))->Option.map(v => In(v))
   | _ => None
   }
 
@@ -150,7 +161,7 @@ let strictParse = (passport: passport) => {
     hcl->parseHairColor,
     pid->parsePassportId,
     ecl->parseEye,
-    hgt->parseHeight,
+    hgt->parseHeightV2,
     byr->Int.fromString->parseBirthDateYear,
     iyr->Int.fromString->parseIssueYear,
     eyr->Int.fromString->parseExpirationYear,
