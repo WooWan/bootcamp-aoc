@@ -112,31 +112,19 @@ let parseHeight = height =>
 
 let parseBirthDateYear = birthYear =>
   switch birthYear {
-  | Some(birthYear) =>
-    switch isInRange(birthYear, 1920, 2002) {
-    | true => Some(birthYear)
-    | false => None
-    }
+  | Some(birthYear) if isInRange(birthYear, 1920, 2002) => Some(birthYear)
   | _ => None
   }
 
 let parseIssueYear = issueYear =>
   switch issueYear {
-  | Some(issueYear) =>
-    switch isInRange(issueYear, 2010, 2020) {
-    | true => Some(issueYear)
-    | false => None
-    }
+  | Some(issueYear) if isInRange(issueYear, 2010, 2020) => Some(issueYear)
   | _ => None
   }
 
 let parseExpirationYear = expirationYear =>
   switch expirationYear {
-  | Some(expirationYear) =>
-    switch isInRange(expirationYear, 2020, 2030) {
-    | true => Some(expirationYear)
-    | false => None
-    }
+  | Some(expirationYear) if isInRange(expirationYear, 2020, 2030) => Some(expirationYear)
   | _ => None
   }
 
