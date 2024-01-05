@@ -1,16 +1,16 @@
+type hair
+type height
+type eye
+
 type passport
+type strictPassport
 
-let convertSplit: string => array<array<string>>
-let convertValue: array<array<string>> => Belt.Map.String.t<string>
+let parse: string => option<passport>
+let parseEye: string => option<eye>
+let parsePassportId: string => option<string>
+let parseBirthDateYear: option<int> => option<int>
+let parseIssueYear: option<int> => option<int>
+let parseExpirationYear: option<int> => option<int>
 
-let hasPassportKey: Belt.Map.String.t<'value> => bool
-let validateEyeColor: string => bool
-let validateHairColor: string => bool
-let validatePassportId: string => bool
-
-let isInRange: (int, int, int) => bool
-let validateBirthYear: int => bool
-let validateIssueYear: int => bool
-let validateExpirationYear: int => bool
-
-let validatePassport: passport => bool
+let parseHairColor: string => option<hair>
+let strictParse: passport => option<strictPassport>
